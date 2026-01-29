@@ -1,0 +1,36 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\09.tabKTalk\\KakaoTab\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{34A7AB64-E2E9-5B90-E82E-B8C927CF73D1}|KakaoTab.csproj|d:\\09.tabktalk\\kakaotab\\kakaotab.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
+      "RelativeMoniker": "D:0:0:{34A7AB64-E2E9-5B90-E82E-B8C927CF73D1}|KakaoTab.csproj|solutionrelative:kakaotab.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 890,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "KakaoTab",
+              "DocumentMoniker": "D:\\09.tabKTalk\\KakaoTab\\KakaoTab.csproj",
+              "RelativeDocumentMoniker": "KakaoTab.csproj",
+              "ToolTip": "D:\\09.tabKTalk\\KakaoTab\\KakaoTab.csproj",
+              "RelativeToolTip": "KakaoTab.csproj",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-07-10T16:01:02.936Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

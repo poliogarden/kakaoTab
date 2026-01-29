@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "dgSpecHash": "3ViGDBWkWZM=",
+  "success": true,
+  "projectFilePath": "C:\\00.Dev\\KakaoTab\\KakaoTab.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\macno\\.nuget\\packages\\microsoft.web.webview2\\1.0.2957.106\\microsoft.web.webview2.1.0.2957.106.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "KakaoTab은(는) Microsoft.Web.WebView2 (>= 1.0.2908.40)에 종속되지만 Microsoft.Web.WebView2 1.0.2908.40을(를) 찾을 수 없습니다. 대신 Microsoft.Web.WebView2 1.0.2957.106이(가) 확인되었습니다.",
+      "libraryId": "Microsoft.Web.WebView2",
+      "targetGraphs": [
+        "net9.0-windows7.0"
+      ]
+    }
+  ]
+}

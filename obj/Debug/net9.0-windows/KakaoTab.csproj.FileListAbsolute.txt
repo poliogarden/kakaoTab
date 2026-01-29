@@ -1,0 +1,14 @@
+D:\09.tabKTalk\KakaoTab\bin\Debug\net9.0-windows\KakaoTab.exe
+D:\09.tabKTalk\KakaoTab\bin\Debug\net9.0-windows\KakaoTab.deps.json
+D:\09.tabKTalk\KakaoTab\bin\Debug\net9.0-windows\KakaoTab.runtimeconfig.json
+D:\09.tabKTalk\KakaoTab\bin\Debug\net9.0-windows\KakaoTab.dll
+D:\09.tabKTalk\KakaoTab\bin\Debug\net9.0-windows\KakaoTab.pdb
+D:\09.tabKTalk\KakaoTab\obj\Debug\net9.0-windows\KakaoTab.GeneratedMSBuildEditorConfig.editorconfig
+D:\09.tabKTalk\KakaoTab\obj\Debug\net9.0-windows\KakaoTab.AssemblyInfoInputs.cache
+D:\09.tabKTalk\KakaoTab\obj\Debug\net9.0-windows\KakaoTab.AssemblyInfo.cs
+D:\09.tabKTalk\KakaoTab\obj\Debug\net9.0-windows\KakaoTab.csproj.CoreCompileInputs.cache
+D:\09.tabKTalk\KakaoTab\obj\Debug\net9.0-windows\KakaoTab.dll
+D:\09.tabKTalk\KakaoTab\obj\Debug\net9.0-windows\refint\KakaoTab.dll
+D:\09.tabKTalk\KakaoTab\obj\Debug\net9.0-windows\KakaoTab.pdb
+D:\09.tabKTalk\KakaoTab\obj\Debug\net9.0-windows\KakaoTab.genruntimeconfig.cache
+D:\09.tabKTalk\KakaoTab\obj\Debug\net9.0-windows\ref\KakaoTab.dll
