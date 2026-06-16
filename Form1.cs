@@ -46,6 +46,7 @@ namespace KakaoTab
         private int lastContextTabIndex = -1; // 우클릭한 탭 인덱스 저장
         private Dictionary<string, WebView2> webViews = new Dictionary<string, WebView2>(); // AI 탭 WebView2 매핑
         private Button? btnRefreshWebView; // 웹뷰 새로고침 버튼
+        private MouseWheelForwardFilter? wheelFilter;
         // private UserNotificationListener? notificationListener; // WinRT - .NET 9에서 사용 불가, 주석 처리
 
         public Form1()
@@ -125,8 +126,43 @@ namespace KakaoTab
             focusTimer.Tick += FocusTimer_Tick;
             focusTimer.Start();
 
+            this.Activated += (_, _) => BeginInvoke(FocusSelectedTabContent);
+
+            wheelFilter = new MouseWheelForwardFilter(this);
+            Application.AddMessageFilter(wheelFilter);
+
             // 마지막에 테마 적용 (컨트롤이 모두 생성된 후)
             ApplyModernTheme();
+        }
+
+        private sealed class MouseWheelForwardFilter : IMessageFilter
+        {
+            private readonly Form1 _form;
+
+            public MouseWheelForwardFilter(Form1 form) => _form = form;
+
+            public bool PreFilterMessage(ref Message m)
+            {
+                const int WM_MOUSEWHEEL = 0x020A;
+                const int WM_MOUSEHWHEEL = 0x020E;
+                if (m.Msg != WM_MOUSEWHEEL && m.Msg != WM_MOUSEHWHEEL)
+                    return false;
+
+                return _form.TryForwardMouseWheel(m.Msg, m.WParam, m.LParam);
+            }
+        }
+
+        private bool TryForwardMouseWheel(int msg, IntPtr wParam, IntPtr lParam)
+        {
+            var selectedTab = tabControlMain.SelectedTab;
+            if (selectedTab?.Tag is not TabTag tag || tag.IsWebTab || tag.Hwnd == IntPtr.Zero)
+                return false;
+
+            Point pt = tabControlMain.PointToClient(Control.MousePosition);
+            if (!tabControlMain.DisplayRectangle.Contains(pt))
+                return false;
+
+            return WindowEmbedder.ForwardMouseWheel(tag.Hwnd, msg, wParam, lParam);
         }
 
         private void ApplyModernTheme()
@@ -689,6 +725,7 @@ namespace KakaoTab
                     var normalized = NormalizeChatTitle(title);
                     var tab = new TabPage(GetShortTitle(normalized.BaseTitle));
                     tab.Tag = new TabTag { Hwnd = fg, HasNewActivity = false, LastCheckedTime = DateTime.Now, BaseTitle = normalized.BaseTitle };
+                    RegisterChatTabPage(tab);
                     tabControlMain.TabPages.Add(tab);
                     knownWindows.Add(fg);
                     lastTab = tab;
@@ -734,6 +771,7 @@ namespace KakaoTab
                     }
                     tag.LastHashUpdate = DateTime.Now;
                 }
+                BeginInvoke(FocusSelectedTabContent);
             }
 
             // 드래그&드롭 이벤트 핸들러 등록 (기본 구조)
@@ -754,6 +792,8 @@ namespace KakaoTab
             // 폼 종료 시 ToastWatcher 정리
             this.FormClosing += (s, e) =>
             {
+                if (wheelFilter != null)
+                    Application.RemoveMessageFilter(wheelFilter);
                 toastWatcher?.Dispose();
             };
         }
@@ -1088,6 +1128,7 @@ string className = WindowScanner.GetWindowClassName(fgHwnd);
                             LastActivatedTime = DateTime.Now // 새 탭 추가 시 현재 시간으로 초기화
                         };
                         tab.Tag = newTag;
+                        RegisterChatTabPage(tab);
                         tabControlMain.TabPages.Add(tab);
                         knownWindows.Add(fgHwnd);
                         chatStates[fgHwnd] = new ChatWindowState { LastTitle = title, LastUnread = normalized.Unread };
@@ -1095,6 +1136,7 @@ string className = WindowScanner.GetWindowClassName(fgHwnd);
                         // 새 탭 추가 시 즉시 임베드 (이벤트만 기다리지 말고 직접 호출)
                         var bounds = tab.ClientRectangle;
                         WindowEmbedder.EmbedWindow(fgHwnd, tab.Handle, bounds);
+                        BeginInvoke(FocusSelectedTabContent);
                         
                         // 초기 ROI 해시 설정 (3개 ROI 모두)
                         if (PixelActivityDetector.TryGetRoiHashPack(fgHwnd, RoiKind.Bottom, out var initialBottomPack))
@@ -1863,6 +1905,41 @@ string className = WindowScanner.GetWindowClassName(fgHwnd);
             
             // 탭 클릭 시 자동 정렬 제거 (사용자 요청: 탭 위치 유지)
             // SortTabsKeepSelection();
+
+            BeginInvoke(FocusSelectedTabContent);
+        }
+
+        private void RegisterChatTabPage(TabPage tab)
+        {
+            tab.MouseDown += ChatTabPage_MouseDown;
+        }
+
+        private void ChatTabPage_MouseDown(object? sender, MouseEventArgs e)
+        {
+            if (sender is not TabPage tab || tab.Tag is not TabTag tag) return;
+            if (tag.IsWebTab || tag.Hwnd == IntPtr.Zero) return;
+            WindowEmbedder.FocusWindow(tag.Hwnd);
+        }
+
+        private void FocusSelectedTabContent()
+        {
+            var selectedTab = tabControlMain.SelectedTab;
+            if (selectedTab?.Tag is not TabTag tag) return;
+
+            if (tag.IsWebTab)
+            {
+                if (!string.IsNullOrEmpty(tag.WebViewKey) &&
+                    webViews.TryGetValue(tag.WebViewKey, out var webView))
+                {
+                    webView.Focus();
+                }
+                return;
+            }
+
+            if (tag.Hwnd != IntPtr.Zero)
+            {
+                WindowEmbedder.FocusWindow(tag.Hwnd);
+            }
         }
         
         /// <summary>
@@ -2830,6 +2907,153 @@ string className = WindowScanner.GetWindowClassName(fgHwnd);
 
         public const uint WM_KEYDOWN = 0x0100;
         public const int VK_ESCAPE = 0x1B;
+        private const int WM_ACTIVATE = 0x0006;
+        private const int WA_CLICKACTIVE = 1;
+
+        private delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumChildWindows(IntPtr hWndParent, EnumChildProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetFocus(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("kernel32.dll")]
+        private static extern uint GetCurrentThreadId();
+
+        [DllImport("user32.dll")]
+        private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool AllowSetForegroundWindow(uint dwProcessId);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetParent(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+
+        private const int WM_MOUSEWHEEL = 0x020A;
+        private const int WM_MOUSEHWHEEL = 0x020E;
+
+        public static bool ForwardMouseWheel(IntPtr chatHwnd, int msg, IntPtr wParam, IntPtr lParam)
+        {
+            if (chatHwnd == IntPtr.Zero || !IsWindow(chatHwnd))
+                return false;
+
+            if (msg != WM_MOUSEWHEEL && msg != WM_MOUSEHWHEEL)
+                return false;
+
+            long param = lParam.ToInt64();
+            int x = (short)(param & 0xFFFF);
+            int y = (short)((param >> 16) & 0xFFFF);
+            IntPtr hwndAtPoint = WindowScanner.WindowFromPoint(new System.Drawing.Point(x, y));
+
+            IntPtr target = chatHwnd;
+            if (hwndAtPoint != IntPtr.Zero && IsDescendantOf(chatHwnd, hwndAtPoint))
+                target = hwndAtPoint;
+
+            SendMessage(target, msg, wParam, lParam);
+            return true;
+        }
+
+        private static bool IsDescendantOf(IntPtr ancestor, IntPtr hwnd)
+        {
+            IntPtr current = hwnd;
+            while (current != IntPtr.Zero)
+            {
+                if (current == ancestor)
+                    return true;
+                current = GetParent(current);
+            }
+            return false;
+        }
+
+        public static void FocusWindow(IntPtr chatHwnd)
+        {
+            if (chatHwnd == IntPtr.Zero || !IsWindow(chatHwnd)) return;
+
+            IntPtr inputHwnd = FindInputHwnd(chatHwnd);
+            IntPtr focusTarget = inputHwnd != IntPtr.Zero ? inputHwnd : chatHwnd;
+
+            uint targetThread = GetWindowThreadProcessId(focusTarget, out uint targetPid);
+            uint currentThread = GetCurrentThreadId();
+            bool attached = false;
+
+            if (targetThread != 0 && targetThread != currentThread)
+            {
+                attached = AttachThreadInput(currentThread, targetThread, true);
+            }
+
+            try
+            {
+                AllowSetForegroundWindow(targetPid);
+                SetForegroundWindow(chatHwnd);
+                PostMessage(chatHwnd, WM_ACTIVATE, (IntPtr)WA_CLICKACTIVE, IntPtr.Zero);
+                SetFocus(focusTarget);
+            }
+            finally
+            {
+                if (attached)
+                {
+                    AttachThreadInput(currentThread, targetThread, false);
+                }
+            }
+        }
+
+        private static IntPtr FindInputHwnd(IntPtr parent)
+        {
+            var state = new InputSearchState();
+            CollectInputHwnd(parent, state);
+            return state.Best;
+        }
+
+        private sealed class InputSearchState
+        {
+            public IntPtr Best { get; set; } = IntPtr.Zero;
+            public int BestBottom { get; set; } = int.MinValue;
+        }
+
+        private static void CollectInputHwnd(IntPtr parent, InputSearchState state)
+        {
+            EnumChildWindows(parent, (hwnd, _) =>
+            {
+                if (!IsWindowVisible(hwnd))
+                    return true;
+
+                string className = WindowScanner.GetWindowClassName(hwnd);
+                if (IsInputClassName(className))
+                {
+                    WindowScanner.GetWindowRect(hwnd, out WindowScanner.RECT rect);
+                    if (rect.Bottom > state.BestBottom)
+                    {
+                        state.BestBottom = rect.Bottom;
+                        state.Best = hwnd;
+                    }
+                }
+
+                CollectInputHwnd(hwnd, state);
+                return true;
+            }, IntPtr.Zero);
+        }
+
+        private static bool IsInputClassName(string className)
+        {
+            if (string.IsNullOrEmpty(className)) return false;
+            if (className.Equals("Edit", StringComparison.OrdinalIgnoreCase)) return true;
+            if (className.Contains("RichEdit", StringComparison.OrdinalIgnoreCase)) return true;
+            if (className.Contains("Edit", StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
 
         public static void EmbedWindow(IntPtr childHwnd, IntPtr parentHwnd, System.Drawing.Rectangle bounds)
         {

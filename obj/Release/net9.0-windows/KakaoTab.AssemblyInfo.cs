@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KakaoTab")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fac4131537457a00f51611efc1f7ae991b9f9c8c")]
 [assembly: System.Reflection.AssemblyProductAttribute("KakaoTab")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KakaoTab")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
